@@ -22,42 +22,51 @@ void run_benchmark (int J, int N) {
   srand(1234);
   vector A(N), Y = vector::Random(N), Z, bA(N), bD(N), bY(N), bZ(N);
   matrix U = matrix::Random(N, J), bU(N, J),
-         V = matrix::Random(N, J), bV(N, J), bW(N, J),
+         V0 = matrix::Random(N, J), V(N, J), bV(N, J), bW(N, J),
          P = matrix::Random(N-1, J), bP(N-1, J);
   Matrix<T, J_comp, J_comp, Options> S(J, J), bS(J, J);
   Matrix<T, J_comp, 1> F(J), G(J), bF(J), bG(J);
   S.setZero();
-  A.setConstant(10*J);
 
   // Likelihood time
-  double strt = get_timestamp();
+  double strt, end, count = 0.0;
 
-  int flag = celerite::factor(U, P, A, V, S);
-  T ll = log(A.array()).sum();
+  strt = get_timestamp();
+  do {
+    V << V0;
+    A.setConstant(10*J);
+    int flag = celerite::factor(U, P, A, V, S);
+    T ll = log(A.array()).sum();
 
-  Z = Y;
-  celerite::solve(U, P, A, V, Z, F, G);
-  ll += Y.transpose() * Z;
+    Z = Y;
+    celerite::solve(U, P, A, V, Z, F, G);
+    ll += Y.transpose() * Z;
 
-  double end = get_timestamp();
+    end = get_timestamp();
+    count += 1.0;
+  } while ((end - strt < 0.7) && (count < 3.0));
   std::cout << sizeof(T) << "," << J_comp << "," << J << "," << N << ",";
-  std::cout << (end - strt) << ",";
+  std::cout << ((end - strt) / count) << ",";
 
   // Grad time
   strt = get_timestamp();
-  bZ = Y;
-  bF.setZero();
-  bG.setZero();
-  celerite::solve_grad(U, P, A, V, Z, F, G, bZ, bF, bG, bU, bP, bD, bW, bY);
-  bY.array() += Z.array();
+  count = 0.0;
+  do {
+    bZ = Y;
+    bF.setZero();
+    bG.setZero();
+    celerite::solve_grad(U, P, A, V, Z, F, G, bZ, bF, bG, bU, bP, bD, bW, bY);
+    bY.array() += Z.array();
 
-  bD.array() = 1.0 / A.array();
-  bW.setZero();
-  bS.setZero();
-  celerite::factor_grad(U, P, A, V, S, bD, bW, bS, bA, bU, bV, bP);
-  end = get_timestamp();
+    bD.array() = 1.0 / A.array();
+    bW.setZero();
+    bS.setZero();
+    celerite::factor_grad(U, P, A, V, S, bD, bW, bS, bA, bU, bV, bP);
+    end = get_timestamp();
+    count += 1.0;
+  } while ((end - strt < 0.7) && (count < 3.0));
 
-  std::cout << (end - strt);
+  std::cout << ((end - strt) / count);
   std::cout << std::endl;
 }
 
@@ -84,7 +93,7 @@ RUN_BENCHMARK(J, 262144)
 int main ()
 {
   std::cout << "size,J_comp,J,N,time,grad_time\n";
-  RUN_BENCHMARKS(1);
+  //RUN_BENCHMARKS(1);
   RUN_BENCHMARKS(2);
   RUN_BENCHMARKS(4);
   RUN_BENCHMARKS(8);
