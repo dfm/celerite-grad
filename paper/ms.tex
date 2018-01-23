@@ -124,12 +124,13 @@ The details of these models can be found elsewhere
 \citep{Foreman-Mackey:2017}, but the basic idea is that for some covariance
 functions, the matrix $K$ can be written as a rank-$J$ semi-separable matrix
 \begin{eqnarray}\eqlabel{semi-K}
-K &=& \mathrm{diag}(\bvec{a}) + \mathrm{tril}(U\,V^\T) +
-    \mathrm{triu}(V\,U^\T)
+K &=& \mathrm{diag}(\bvec{a}) + \mathrm{tril}(\tilde{U}\,\tilde{V}^\T) +
+    \mathrm{triu}(\tilde{V}\,\tilde{U}^\T)
 \end{eqnarray}
-where $\bvec{a}$ is a $N$-vector, $U$ and $V$ are $N \times J$ matrices, the
-diag function creates a diagonal matrix from a vector, and the tril and triu
-extract the strict lower and upper triangular matrices from a dense matrix.
+where $\bvec{a}$ is a $N$-vector, $\tilde{U}$ and $\tilde{V}$ are $N \times J$
+matrices, the diag function creates a diagonal matrix from a vector, and the
+tril and triu extract the strict lower and upper triangular matrices from a
+dense matrix.
 For a matrix of this form, \citet{Foreman-Mackey:2017} derived an algorithm
 with $\mathcal{O}(N\,J^2)$ scaling for computing the Cholesky factorization
 \begin{eqnarray}
@@ -143,6 +144,19 @@ for some $N \times J$ matrix $W$.
 The algorithm from \citet{Foreman-Mackey:2017} includes an $N-1 \times J$
 ``preconditioning'' matrix\footnote{This matrix is called $\phi$ by
 \citet{Foreman-Mackey:2017}.} that we include with the notation $P$.
+In this notation,
+\begin{eqnarray}
+\bvec{u}_n &\gets&
+\left[\prod_{k=1}^{n-1}\mathrm{diag}(\bvec{p}_k)^{-1}\right]\,\bvec{u}_n\\
+\bvec{v}_n &\gets&
+\left[\prod_{k=1}^{n-1}\mathrm{diag}(\bvec{p}_k)\right]\,\bvec{v}_n\\
+\bvec{w}_n &\gets&
+\left[\prod_{k=1}^{n-1}\mathrm{diag}(\bvec{p}_k)\right]\,\bvec{w}_n\\
+\end{eqnarray}
+and in all that follows, I will use these transformed
+variables\footnote{\citet{Foreman-Mackey:2017} indicate the transformed
+variables using a tilde, but that notation will be inconsistent later.}.
+
 The Cholesky factorization algorithm derived by \citet{Foreman-Mackey:2017} is
 given is reproduced in the following algorithm:
 
@@ -243,6 +257,7 @@ an explanation of the notation.
 \textbf{function} \texttt{celerite\_factor\_grad}($U$, $P$, $\bvec{d}$, $W$,
     $S$, $\bar{\bvec{d}}$, $\bar{W}$, $\bar{S}$) \\
 \hspace*{2em}\textbf{for} $n = N,\ldots,2$:\\
+\hspace*{2em}\hspace*{2em}$\bar{d}$
 
 \hspace*{2em}$S \gets$ \texttt{zeros}($J$, $J$) \\
     \hspace*{2em}$\bvec{w}_1 \gets \bvec{w}_1 / d_{1}$ \\
