@@ -65,8 +65,7 @@ typename matrix::Scalar compute_grad_likelihood (
 
   // Seed gradients.
   bz = y;
-  //by = z;
-  by.setZero();
+  by = z;
   bd.array() = 1.0 / d.array();
 
   bF.setZero();
@@ -77,7 +76,6 @@ typename matrix::Scalar compute_grad_likelihood (
   bW.setZero();
 
   celerite::solve_grad(U, P, d, W, z, F, G, bz, bF, bG, bU, bP, bd, bW, by);
-  by.array() += z.array();
 
   bS.setZero();
   ba.setZero();
