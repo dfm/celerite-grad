@@ -8,7 +8,10 @@ CHECK_RERUN = grep Rerun ms.log
 default: ms.pdf
 
 ms.pdf: ms.tex
-	tectonic ms.tex
+	pdflatex ms
+	bibtex ms
+	pdflatex ms
+	pdflatex ms
 
 clean:
 	$(RM_TMP)

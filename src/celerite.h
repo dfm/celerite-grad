@@ -65,18 +65,18 @@ void factor_grad (
   for (int n = N-1; n > 0; --n) {
     // Step 6
     bd_ -= W.row(n) * bW_.transpose();
-    bV.row(n).noalias() = bW_;
-    bU.row(n).noalias() = -bW_ * S_;
+    bV.row(n).noalias() += bW_;
+    bU.row(n).noalias() += -bW_ * S_;
     bS_.noalias() -= U.row(n).transpose() * bW_;
 
     // Step 5
-    ba(n) = bd_;
+    ba(n) += bd_;
     bU.row(n).noalias() -= 2.0 * bd_ * U.row(n) * S_;
     bS_.noalias() -= bd_ * U.row(n).transpose() * U.row(n);
 
     // Step 4
     S_ *= P.row(n-1).asDiagonal().inverse();
-    bP.row(n-1).noalias() = (bS_ * S_ + S_.transpose() * bS_).diagonal();
+    bP.row(n-1).noalias() += (bS_ * S_ + S_.transpose() * bS_).diagonal();
 
     // Step 3
     bS_ = P.row(n-1).asDiagonal() * bS_ * P.row(n-1).asDiagonal();
@@ -91,10 +91,10 @@ void factor_grad (
   }
 
   // Finally update the first row.
-  bU.row(0).setZero();
-  bV.row(0).noalias() = bW_;
+  //bU.row(0).setZero();
+  bV.row(0).noalias() += bW_;
   bd_ -= bW_ * W.row(0).transpose();
-  ba(0) = bd_;
+  ba(0) += bd_;
 }
 
 template <typename T1, typename T2, typename T3, typename T4, typename T5>
@@ -152,12 +152,12 @@ void solve_grad (
   Eigen::Matrix<typename T4::Scalar, T4::RowsAtCompileTime, T4::ColsAtCompileTime, T4::IsRowMajor>
     Z_ = Z;
 
-  bY = bZ;
+  bY.array() = bZ.array();
   bU.row(0).setZero();
 
   for (int n = 0; n <= N-2; ++n) {
     // Grad of: Z.row(n).noalias() -= W.row(n) * G;
-    bW.row(n).noalias() = -bY.row(n) * G_.transpose();
+    bW.row(n).noalias() -= bY.row(n) * G_.transpose();
     bG_.noalias() -= W.row(n).transpose() * bY.row(n);
 
     // Inverse of: Z.row(n).noalias() -= W.row(n) * G;
@@ -167,21 +167,21 @@ void solve_grad (
     G_ = P.row(n).asDiagonal().inverse() * G_;
 
     // Grad of: g = P.row(n).asDiagonal() * G;
-    bP.row(n).noalias() = (bG_ * G_.transpose()).diagonal();
+    bP.row(n).noalias() += (bG_ * G_.transpose()).diagonal();
     bG_ = P.row(n).asDiagonal() * bG_;
 
     // Inverse of: g.noalias() += U.row(n+1).transpose() * Z.row(n+1);
     G_.noalias() -= U.row(n+1).transpose() * Z_.row(n+1);
 
     // Grad of: g.noalias() += U.row(n+1).transpose() * Z.row(n+1);
-    bU.row(n+1).noalias() = Z_.row(n+1) * bG_.transpose();
+    bU.row(n+1).noalias() += Z_.row(n+1) * bG_.transpose();
     bY.row(n+1).noalias() += U.row(n+1) * bG_;
   }
 
   bW.row(N-1).setZero();
 
   bY.array().colwise() /= d.array();
-  bd = -(Z_.array() * bY.array()).rowwise().sum();
+  bd.array() -= (Z_.array() * bY.array()).rowwise().sum();
 
   // Inverse of: Z.array().colwise() /= d.array();
   Z_.array().colwise() *= d.array();
