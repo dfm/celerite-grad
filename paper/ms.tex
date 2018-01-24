@@ -124,10 +124,10 @@ The details of these models can be found elsewhere
 \citep{Foreman-Mackey:2017}, but the basic idea is that for some covariance
 functions, the matrix $K$ can be written as a rank-$J$ semi-separable matrix
 \begin{eqnarray}\eqlabel{semi-K}
-K &=& \mathrm{diag}(\bvec{a}) + \mathrm{tril}(\tilde{U}\,\tilde{V}^\T) +
-    \mathrm{triu}(\tilde{V}\,\tilde{U}^\T)
+K &=& \mathrm{diag}(\bvec{a}) + \mathrm{tril}(U\,{V}^\T) +
+    \mathrm{triu}({V}\,{U}^\T)
 \end{eqnarray}
-where $\bvec{a}$ is a $N$-vector, $\tilde{U}$ and $\tilde{V}$ are $N \times J$
+where $\bvec{a}$ is a $N$-vector, ${U}$ and ${V}$ are $N \times J$
 matrices, the diag function creates a diagonal matrix from a vector, and the
 tril and triu extract the strict lower and upper triangular matrices from a
 dense matrix.
@@ -144,18 +144,9 @@ for some $N \times J$ matrix $W$.
 The algorithm from \citet{Foreman-Mackey:2017} includes an $N-1 \times J$
 ``preconditioning'' matrix\footnote{This matrix is called $\phi$ by
 \citet{Foreman-Mackey:2017}.} that we include with the notation $P$.
-In this notation,
-\begin{eqnarray}
-\bvec{u}_n &\gets&
-\left[\prod_{k=1}^{n-1}\mathrm{diag}(\bvec{p}_k)^{-1}\right]\,\bvec{u}_n\\
-\bvec{v}_n &\gets&
-\left[\prod_{k=1}^{n-1}\mathrm{diag}(\bvec{p}_k)\right]\,\bvec{v}_n\\
-\bvec{w}_n &\gets&
-\left[\prod_{k=1}^{n-1}\mathrm{diag}(\bvec{p}_k)\right]\,\bvec{w}_n\\
-\end{eqnarray}
-and in all that follows, I will use these transformed
-variables\footnote{\citet{Foreman-Mackey:2017} indicate the transformed
-variables using a tilde, but that notation will be inconsistent later.}.
+The preconditioned variables were indicated with a tilde by
+\citet{Foreman-Mackey:2017}, but to simplify the notation, we will only refer
+to the pre-conditioned variables in all that follows.
 
 The Cholesky factorization algorithm derived by \citet{Foreman-Mackey:2017} is
 given is reproduced in the following algorithm:
@@ -255,20 +246,36 @@ an explanation of the notation.
 \medskip
 \begin{minipage}{\linewidth}
 \textbf{function} \texttt{celerite\_factor\_grad}($U$, $P$, $\bvec{d}$, $W$,
-    $S$, $\bar{\bvec{d}}$, $\bar{W}$, $\bar{S}$) \\
+    $S$, $\bar{S}$, $\bar{\bvec{a}}$, $\bar{V}$) \\
+\hspace*{2em}\textsf{\# At input $\bar{\bvec{a}} = \bar{\bvec{d}}$ and
+    $\bar{V} = \bar{W}$}\\
+    \hspace*{2em}$\bar{\bvec{v}}_N \gets \bar{\bvec{v}}_N / d_N$\\
 \hspace*{2em}\textbf{for} $n = N,\ldots,2$:\\
-\hspace*{2em}\hspace*{2em}$\bar{d}$
+\hspace*{2em}\hspace*{2em}$\bar{a}_n \gets \bar{a}_n -
+    \bvec{w}_n\,{\bar{\bvec{v}}_n}^\T$\\
+\hspace*{2em}\hspace*{2em}$\bar{\bvec{u}}_n \gets - [\bar{\bvec{v}}_n +
+    2\,\bar{a}_n\,\bvec{u}_n]\,S$\\
+\hspace*{2em}\hspace*{2em}$\bar{S} \gets \bar{S} -
+    {\bvec{u}_n}^\T\,[\bar{\bvec{v}}_n + \bar{a}_n\,\bvec{u}_n]$\\
 
-\hspace*{2em}$S \gets$ \texttt{zeros}($J$, $J$) \\
-    \hspace*{2em}$\bvec{w}_1 \gets \bvec{w}_1 / d_{1}$ \\
-\hspace*{2em}\textbf{for} $n = 2,\ldots,N$:\\
-\hspace*{2em}\hspace*{2em}$S \gets \texttt{diag}(\bvec{p}_{n-1})\,[
-    S + d_{n-1}\,{\bvec{w}_{n-1}}^\T\,{\bvec{w}_{n-1}}
-]\,\texttt{diag}(\bvec{p}_{n-1})$ \\
-\hspace*{2em}\hspace*{2em}$d_{n} \gets d_{n} - \bvec{u}_n\,S\,{\bvec{u}_n}^\T$\\
-\hspace*{2em}\hspace*{2em}$\bvec{w}_n \gets \left[\bvec{w}_n -
-    \bvec{u}_n\,S \right] / d_{n}$\\
-    \hspace*{2em}\textbf{return} $\bvec{d}$, $W$, $S$
+\hspace*{2em}\hspace*{2em}$\bar{\bvec{p}}_{n-1} \gets \mathrm{diag}(\bar{S}\,S
+    \,\mathrm{diag}(\bvec{p}_{n-1})^{-1} + \mathrm{diag}(\bvec{p}_{n-1})^{-1}\,
+    S\,\bar{S})$\\
+\hspace*{2em}\hspace*{2em}$\bar{S} \gets \mathrm{diag}(\bvec{p}_{n-1})\,
+    \bar{S}\,\mathrm{diag}(\bvec{p}_{n-1})$\\
+\hspace*{2em}\hspace*{2em}$\bar{d}_{n-1} \gets \bar{d}_{n-1} +
+    \bvec{w}_{n-1}\,\bar{S}\,{\bvec{w}_{n-1}}^\T$\\
+\hspace*{2em}\hspace*{2em}$\bar{\bvec{v}}_{n-1} \gets \bar{\bvec{v}}_{n-1}
+    / d_{n-1} + \bvec{w}_{n-1}\,[\bar{S} + \bar{S}^\T]$\\
+
+\hspace*{2em}\hspace*{2em}$S \gets \mathrm{diag}(\bvec{p}_{n-1})^{-1}\,S\,
+    \mathrm{diag}(\bvec{p}_{n-1})^{-1}
+    - d_{n-1}\,{\bvec{w}_{n-1}}^\T\,\bvec{w}_{n-1}$\\
+
+\hspace*{2em}$\bar{a}_1 \gets \bar{a}_1 -
+    \bar{\bvec{v}}_1\,{\bvec{w}_1}^\T$\\
+
+\hspace*{2em}\textbf{return} $\bar{U}$, $\bar{P}$, $\bar{\bvec{a}}$, $\bar{V}$
 \end{minipage}
 \medskip
 

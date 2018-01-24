@@ -45,34 +45,26 @@ void factor_grad (
   const Eigen::MatrixBase<T1>& W,   // (N, J)
   const Eigen::MatrixBase<T4>& S,   // (J, J)
 
-  const Eigen::MatrixBase<T3>& bd,  // (N)
-  const Eigen::MatrixBase<T1>& bW,  // (N, J)
   const Eigen::MatrixBase<T4>& bS,  // (J, J)
 
-  Eigen::MatrixBase<T5>& ba,        // (N)
-  Eigen::MatrixBase<T6>& bU,        // (N, J)
-  Eigen::MatrixBase<T6>& bV,        // (N, J)
-  Eigen::MatrixBase<T7>& bP         // (N-1, J)
+  Eigen::MatrixBase<T5>& bU,        // (N, J)
+  Eigen::MatrixBase<T6>& bP,        // (N-1, J)
+  Eigen::MatrixBase<T7>& ba,        // (N)
+  Eigen::MatrixBase<T5>& bV         // (N, J)
 ) {
   int N = U.rows();
 
   // Make local copies of the gradients that we need.
-  typename T3::Scalar bd_ = bd(N-1);
   Eigen::Matrix<typename T4::Scalar, T4::RowsAtCompileTime, T4::ColsAtCompileTime, T4::IsRowMajor> bS_ = bS, S_ = S;
-  Eigen::Matrix<typename T1::Scalar, 1, T1::ColsAtCompileTime> bW_ = bW.row(N-1) / d(N-1);
   Eigen::Matrix<typename T1::Scalar, T1::ColsAtCompileTime, 1> bSWT;
+
+  bV.array().colwise() /= d.array();
 
   for (int n = N-1; n > 0; --n) {
     // Step 6
-    bd_ -= W.row(n) * bW_.transpose();
-    bV.row(n).noalias() += bW_;
-    bU.row(n).noalias() += -bW_ * S_;
-    bS_.noalias() -= U.row(n).transpose() * bW_;
-
-    // Step 5
-    ba(n) += bd_;
-    bU.row(n).noalias() -= 2.0 * bd_ * U.row(n) * S_;
-    bS_.noalias() -= bd_ * U.row(n).transpose() * U.row(n);
+    ba(n) -= W.row(n) * bV.row(n).transpose();
+    bU.row(n).noalias() -= (bV.row(n) + 2.0 * ba.row(n) * U.row(n)) * S_;
+    bS_.noalias() -= U.row(n).transpose() * (bV.row(n) + ba(n) * U.row(n));
 
     // Step 4
     S_ *= P.row(n-1).asDiagonal().inverse();
@@ -81,20 +73,15 @@ void factor_grad (
     // Step 3
     bS_ = P.row(n-1).asDiagonal() * bS_ * P.row(n-1).asDiagonal();
     bSWT = bS_ * W.row(n-1).transpose();
-    bd_ = bd(n-1) + W.row(n-1) * bSWT;
-    bW_.noalias() = bW.row(n-1) / d(n-1);
-    bW_.noalias() += W.row(n-1) * (bS_ + bS_.transpose());
+    ba(n-1) += W.row(n-1) * bSWT;
+    bV.row(n-1).noalias() += W.row(n-1) * (bS_ + bS_.transpose());
 
     // Downdate S
     S_ = P.row(n-1).asDiagonal().inverse() * S_;
     S_.noalias() -= d(n-1) * W.row(n-1).transpose() * W.row(n-1);
   }
 
-  // Finally update the first row.
-  //bU.row(0).setZero();
-  bV.row(0).noalias() += bW_;
-  bd_ -= bW_ * W.row(0).transpose();
-  ba(0) += bd_;
+  ba(0) -= bV.row(0) * W.row(0).transpose();
 }
 
 template <typename T1, typename T2, typename T3, typename T4, typename T5>

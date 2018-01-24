@@ -53,15 +53,20 @@ void run_benchmark (int J, int N) {
   count = 0.0;
   do {
     bZ = Y;
+    bY = Z;
+    bD.array() = 1.0 / A.array();
+
     bF.setZero();
     bG.setZero();
-    celerite::solve_grad(U, P, A, V, Z, F, G, bZ, bF, bG, bU, bP, bD, bW, bY);
-    bY.array() += Z.array();
 
-    bD.array() = 1.0 / A.array();
-    bW.setZero();
+    bU.setZero();
+    bP.setZero();
+
+    celerite::solve_grad(U, P, A, V, Z, F, G, bZ, bF, bG, bU, bP, bD, bW, bY);
+
     bS.setZero();
-    celerite::factor_grad(U, P, A, V, S, bD, bW, bS, bA, bU, bV, bP);
+    celerite::factor_grad(U, P, A, V, S, bS, bU, bP, bD, bW);
+
     end = get_timestamp();
     count += 1.0;
   } while ((end - strt < 0.7) && (count < 3.0));

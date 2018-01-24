@@ -78,9 +78,9 @@ typename matrix::Scalar compute_grad_likelihood (
   celerite::solve_grad(U, P, d, W, z, F, G, bz, bF, bG, bU, bP, bd, bW, by);
 
   bS.setZero();
-  ba.setZero();
-  bV.setZero();
-  celerite::factor_grad(U, P, d, W, S, bd, bW, bS, ba, bU, bV, bP);
+  ba = bd;
+  bV = bW;
+  celerite::factor_grad(U, P, d, W, S, bS, bU, bP, ba, bV);
 
   return ll;
 }
@@ -136,13 +136,11 @@ void run_test (int N) {
 
   std::cout << max_error << std::endl;
   std::cout << max_error_name << std::endl;
-  //std::cout << bU2.col(0).transpose() << std::endl;
-  //std::cout << (bU.col(0) - bU2.col(0)).transpose() << std::endl;
 }
 
 int main ()
 {
-  run_test<double, 2>(10);
+  run_test<double, 5>(10);
 
   return 0;
 }
