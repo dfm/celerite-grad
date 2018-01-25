@@ -77,7 +77,7 @@ methods: data analysis ---
 methods: statistical
 }
 
-\section{Abstract}
+\section{Introduction}
 
 This research note presents a derivation and implementation of reverse-mode
 gradients of the \emph{celerite} algorithm for scalable inference with
@@ -90,9 +90,7 @@ The algorithm derived in this note uses less memory and is more efficient than
 versions using automatic differentiation and the computational cost scales
 linearly with the number of data points.
 
-\section{Introduction}
-
-Gaussian Processes \citep[GPs][]{Rasmussen:2006} are a class of models used
+GPs \citep{Rasmussen:2006} are a class of models used
 extensively in the astrophysical literature to model stochastic processes.
 The applications are broad-ranging and some example include the time domain
 variability of astronomical sources \citep{Brewer:2009, Kelly:2014,
@@ -119,7 +117,7 @@ The computational cost of these operations scales as $\mathcal{O}(N^3)$ in the
 general case, but the \emph{celerite} method was recently introduced in the
 astronomical literature to compute the GP likelihood for a class of
 one-dimensional models with $\mathcal{O}(N)$ scaling
-\citep{Foreman-Mackey:2017}.
+\citep{Ambikasaran:2015, Foreman-Mackey:2017}.
 
 The details of the \emph{celerite} method can be found in
 \citet{Foreman-Mackey:2017} and I will not repeat them here.
@@ -217,7 +215,8 @@ matrix gradients \citep{Giles:2008}, I present the reverse-mode gradients of
 the \emph{celerite} method.
 While not yet popular within astrophysics, ``reverse-mode accumulation'' of
 gradients (also known as ``backpropagation'') has revolutionalized the field
-of machine learning over the past few decades (TODO ADD CITATION).
+of machine learning over the past few decades \citep[for
+example][]{LeCun:2015}.
 The review \citep{Giles:2008} provides a thorough overview of these methods
 and the interested reader is directed to that discussion for details and for
 an explanation of the notation.
@@ -323,24 +322,34 @@ Furthermore, the derivation of reverse-mode accumulation algorithms for
 automatic differentiation libraries like Stan \citep{Carpenter:2015},
 TensorFlow \citep{Abadi:2016}, and others.
 
+It is a pleasure to thank
+Eric Agol,
+Sivaram Ambikasaran, and
+Victor Minden
+for conversations that inspired this work.
+A reference implementation of these algorithms, benchmarks, and tests can be
+found at \url{https://github.com/dfm/celerite-grad}.
 
-\begin{figure}[h!]
+\begin{figure}[htbp]
 \begin{center}
 \includegraphics[width=0.9\textwidth]{figure.pdf}
 \caption{%
-    Scaling.
+    The computational scaling of the algorithms prsented in this note.
+    \emph{(top row)}: The computational cost of computing \eq{loglike} as a
+    function of the number of datapoints ($N$; left) and the model complexity
+    ($J$; right).
+    \emph{(bottom row)}: The cost of computing the gradient of \eq{loglike}
+    with respect to the vector $\bvec{a}$ and the matrices $U$, $V$, and $P$.
+    In the left panels, each line corresponds to a different value of $J$ as
+    indicated in the legend (with $J$ increasing from bottom to top).
+    Similarly, in the right panels, the lines correspond to different values
+    of $N$ increasing from bottom to top.
 \figurelabel{figure}}
 \end{center}
 \end{figure}
 
-%\acknowledgements
-%It is a pleasure to thank
-%  Patrick Cooper,
-%  Boris Leistedt,
-%  Bernhard Sch\"olkopf, and
-%  Dun Wang
-%for helping us understand all of this.
 
 \bibliography{celerite}
+
 
 \end{document}
