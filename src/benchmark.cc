@@ -44,7 +44,7 @@ void run_benchmark (int J, int N) {
 
     end = get_timestamp();
     count += 1.0;
-  } while ((end - strt < 0.7) && (count < 3.0));
+  } while ((end - strt < 0.7) || (count < 3.0));
   std::cout << sizeof(T) << "," << J_comp << "," << J << "," << N << ",";
   std::cout << ((end - strt) / count) << ",";
 
@@ -69,7 +69,7 @@ void run_benchmark (int J, int N) {
 
     end = get_timestamp();
     count += 1.0;
-  } while ((end - strt < 0.7) && (count < 3.0));
+  } while ((end - strt < 0.7) || (count < 3.0));
 
   std::cout << ((end - strt) / count);
   std::cout << std::endl;
