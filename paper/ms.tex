@@ -120,44 +120,23 @@ general case, but the \emph{celerite} method was recently introduced in the
 astronomical literature to compute the GP likelihood for a class of
 one-dimensional models with $\mathcal{O}(N)$ scaling
 \citep{Foreman-Mackey:2017}.
-The details of these models can be found elsewhere
-\citep{Foreman-Mackey:2017}, but the basic idea is that for some covariance
-functions, the matrix $K$ can be written as a rank-$J$ semi-separable matrix
-\begin{eqnarray}\eqlabel{semi-K}
-K &=& \mathrm{diag}(\bvec{a}) + \mathrm{tril}(U\,{V}^\T) +
-    \mathrm{triu}({V}\,{U}^\T)
-\end{eqnarray}
-where $\bvec{a}$ is a $N$-vector, ${U}$ and ${V}$ are $N \times J$
-matrices, the diag function creates a diagonal matrix from a vector, and the
-tril and triu extract the strict lower and upper triangular matrices from a
-dense matrix.
-For a matrix of this form, \citet{Foreman-Mackey:2017} derived an algorithm
-with $\mathcal{O}(N\,J^2)$ scaling for computing the Cholesky factorization
-\begin{eqnarray}
-K &=& L\,\mathrm{diag}(\bvec{d})\,L^\T
-\end{eqnarray}
-where
-\begin{eqnarray}\eqlabel{semi-L}
-L &=& I + \mathrm{tril}(U\,W^\T)
-\end{eqnarray}
-for some $N \times J$ matrix $W$.
-The algorithm from \citet{Foreman-Mackey:2017} includes an $N-1 \times J$
-``preconditioning'' matrix\footnote{This matrix is called $\phi$ by
-\citet{Foreman-Mackey:2017}.} that we include with the notation $P$.
-The preconditioned variables were indicated with a tilde by
-\citet{Foreman-Mackey:2017}, but to simplify the notation, we will only refer
-to the pre-conditioned variables in all that follows.
 
-The Cholesky factorization algorithm derived by \citet{Foreman-Mackey:2017} is
-given is reproduced in the following algorithm:
+The details of the \emph{celerite} method can be found in
+\citet{Foreman-Mackey:2017} and I will not repeat them here.
+The only difference in notation here is that all the matrices to which I refer
+are the ``pre-conditioned'' matrices that are indicated with a tilde by
+\citet{Foreman-Mackey:2017}, but the tilde is not included here for
+simplicity.
+I will also use the symbol $P$ to mean the $N-1 \times J$ pre-conditioning
+matrix that was called $\phi$ by \citet{Foreman-Mackey:2017}.
+The Cholesky factorization algorithm derived by \citet[][their
+Equation~46]{Foreman-Mackey:2017} is given is listed below in the following
+algorithm:
 
 \medskip
 \begin{minipage}{\linewidth}
 \textbf{function} \texttt{celerite\_factor}($U$, $P$, $\bvec{d}$, $W$) \\
-\hspace*{2em}\textsf{\# If at input $\bvec{d} = \bvec{a}$, $W = V$, and $K$ is
-    given by \Eq{semi-K},} \\
-\hspace*{2em}\textsf{\# at output $K = L\,L^\T$ where $L$ is given by
-    \Eq{semi-L}.} \\
+\hspace*{2em}\textsf{\# At input $\bvec{d} = \bvec{a}$ and $W = V$} \\
 \hspace*{2em}$S \gets$ \texttt{zeros}($J$, $J$) \\
     \hspace*{2em}$\bvec{w}_1 \gets \bvec{w}_1 / d_{1}$ \\
 \hspace*{2em}\textbf{for} $n = 2,\ldots,N$:\\
@@ -179,22 +158,22 @@ Using this factorization, the log-determinant of $K$ is
 \begin{eqnarray}
 \log \det K &=& \sum_{n=1}^N \log d_{n} \quad.
 \end{eqnarray}
-
 Similarly, \citet{Foreman-Mackey:2017} derived a $\mathcal{O}(N\,J)$ algorithm
-to apply the inverse of $K$ as shown in the following algorithm:
+to apply the inverse of $K$ as follows (Equations~47 and~48 in
+\citealt{Foreman-Mackey:2017}):
 
 \medskip
 \begin{minipage}{\linewidth}
 \textbf{function} \texttt{celerite\_solve}($U$, $P$, $\bvec{d}$, $W$, $Z$) \\
-\hspace*{2em}\textsf{\# If at input $Z = Y$, at output $Z = K^{-1}\,Y$.} \\
+\hspace*{2em}\textsf{\# At input $Z = Y$} \\
 \hspace*{2em}$F \gets$ \texttt{zeros}($J$, $N_\mathrm{rhs}$) \\
-\hspace*{2em}$G \gets$ \texttt{zeros}($J$, $N_\mathrm{rhs}$) \\
 \hspace*{2em}\textbf{for} $n = 2,\ldots,N$:\\
 \hspace*{2em}\hspace*{2em}$F \gets \texttt{diag}(\bvec{p}_{n-1})\,[F +
     {\bvec{w}_{n-1}}^\T\,\bvec{z}_{n-1}]$\\
 \hspace*{2em}\hspace*{2em}$\bvec{z}_n \gets \bvec{z}_n - \bvec{u}_n\,F$\\
 \hspace*{2em}\textbf{for} $n = 1,\ldots,N$:\\
 \hspace*{2em}\hspace*{2em}$\bvec{z}_n \gets \bvec{z}_n / d_{n}$\\
+\hspace*{2em}$G \gets$ \texttt{zeros}($J$, $N_\mathrm{rhs}$) \\
 \hspace*{2em}\textbf{for} $n = N-1,\ldots,1$:\\
 \hspace*{2em}\hspace*{2em}$G \gets \texttt{diag}(\bvec{p}_{n})\,[G +
     {\bvec{u}_{n+1}}^\T\,\bvec{z}_{n+1}]$\\
@@ -243,9 +222,13 @@ The review \citep{Giles:2008} provides a thorough overview of these methods
 and the interested reader is directed to that discussion for details and for
 an explanation of the notation.
 
+Using the notation from \citet{Giles:2008} and performing some tedious
+algebra, the reverse-mode implementation of the \texttt{celerite\_factor}
+function is found to be:
+
 \medskip
 \begin{minipage}{\linewidth}
-\textbf{function} \texttt{celerite\_factor\_grad}($U$, $P$, $\bvec{d}$, $W$,
+\textbf{function} \texttt{celerite\_factor\_rev}($U$, $P$, $\bvec{d}$, $W$,
     $S$, $\bar{S}$, $\bar{\bvec{a}}$, $\bar{V}$) \\
 \hspace*{2em}\textsf{\# At input $\bar{\bvec{a}} = \bar{\bvec{d}}$ and
     $\bar{V} = \bar{W}$}\\
@@ -257,7 +240,6 @@ an explanation of the notation.
     2\,\bar{a}_n\,\bvec{u}_n]\,S$\\
 \hspace*{2em}\hspace*{2em}$\bar{S} \gets \bar{S} -
     {\bvec{u}_n}^\T\,[\bar{\bvec{v}}_n + \bar{a}_n\,\bvec{u}_n]$\\
-
 \hspace*{2em}\hspace*{2em}$\bar{\bvec{p}}_{n-1} \gets \mathrm{diag}(\bar{S}\,S
     \,\mathrm{diag}(\bvec{p}_{n-1})^{-1} + \mathrm{diag}(\bvec{p}_{n-1})^{-1}\,
     S\,\bar{S})$\\
@@ -267,17 +249,79 @@ an explanation of the notation.
     \bvec{w}_{n-1}\,\bar{S}\,{\bvec{w}_{n-1}}^\T$\\
 \hspace*{2em}\hspace*{2em}$\bar{\bvec{v}}_{n-1} \gets \bar{\bvec{v}}_{n-1}
     / d_{n-1} + \bvec{w}_{n-1}\,[\bar{S} + \bar{S}^\T]$\\
-
 \hspace*{2em}\hspace*{2em}$S \gets \mathrm{diag}(\bvec{p}_{n-1})^{-1}\,S\,
     \mathrm{diag}(\bvec{p}_{n-1})^{-1}
     - d_{n-1}\,{\bvec{w}_{n-1}}^\T\,\bvec{w}_{n-1}$\\
-
 \hspace*{2em}$\bar{a}_1 \gets \bar{a}_1 -
     \bar{\bvec{v}}_1\,{\bvec{w}_1}^\T$\\
-
 \hspace*{2em}\textbf{return} $\bar{U}$, $\bar{P}$, $\bar{\bvec{a}}$, $\bar{V}$
 \end{minipage}
 \medskip
+
+\noindent Similarly, the reverse-mode function corresponding to
+\texttt{celerite\_solve} is:
+
+\medskip
+\begin{minipage}{\linewidth}
+\textbf{function} \texttt{celerite\_solve\_rev}($U$, $P$, $\bvec{d}$, $W$,
+    $Z$, $F$, $G$, $\bar{F}$, $\bar{G}$, $\bar{Y}$) \\
+\hspace*{2em}\textsf{\# At input $\bar{Y} = \bar{Z}$}\\
+\hspace*{2em}\textbf{for} $n = 1,\ldots,N-1$:\\
+\hspace*{2em}\hspace*{2em}$\bar{\bvec{w}}_n \gets
+    - \bar{\bvec{y}}_n\,G^\T$\\
+\hspace*{2em}\hspace*{2em}$\bar{G} \gets \bar{G} - {\bvec{w}_n}^\T \,
+    \bar{\bvec{y}}_n$\\
+\hspace*{2em}\hspace*{2em}$\bvec{z}_n \gets \bvec{z}_n + \bvec{w}_n\,G$\\
+\hspace*{2em}\hspace*{2em}$G \gets \mathrm{diag}(\bvec{p}_n)^{-1}\,G$\\
+\hspace*{2em}\hspace*{2em}$\bar{\bvec{p}}_n \gets \mathrm{diag}(
+    \bar{G}\,G^\T)$\\
+\hspace*{2em}\hspace*{2em}$\bar{G} \gets
+    \mathrm{diag}(\bvec{p}_n)\,\bar{G}$\\
+\hspace*{2em}\hspace*{2em}$G \gets G - {\bvec{u}_{n+1}}^\T\,\bvec{z}_{n+1}$\\
+\hspace*{2em}\hspace*{2em}$\bar{\bvec{u}}_{n+1} \gets
+    \bvec{z}_{n+1}\,\bar{G}^\T$\\
+\hspace*{2em}\hspace*{2em}$\bar{\bvec{y}}_{n+1} \gets
+    \bvec{u}_{n+1}\,\bar{G}$\\
+\hspace*{2em}\textbf{for} $n = 1,\ldots,N$:\\
+\hspace*{2em}\hspace*{2em}$\bar{\bvec{y}}_n \gets \bar{\bvec{y}}_n/d_n$\\
+\hspace*{2em}\hspace*{2em}$\bar{d}_n \gets -
+    \bvec{z}_n\,{\bar{\bvec{y}}_n}^\T$\\
+\hspace*{2em}\textbf{for} $n = N,\ldots,2$:\\
+\hspace*{2em}\hspace*{2em}$\bar{\bvec{u}}_n \gets \bar{\bvec{u}}_n
+    - \bar{\bvec{y}}_n\,F^\T$\\
+\hspace*{2em}\hspace*{2em}$\bar{F} \gets \bar{F} - {\bvec{u}_n}^\T \,
+    \bar{\bvec{y}}_n$\\
+\hspace*{2em}\hspace*{2em}$F \gets \mathrm{diag}(\bvec{p}_{n-1})^{-1}\,F$\\
+\hspace*{2em}\hspace*{2em}$\bar{\bvec{p}}_{n-1} \gets \bar{\bvec{p}}_{n-1} +
+    \mathrm{diag}(\bar{F}\,F^\T)$\\
+\hspace*{2em}\hspace*{2em}$\bar{F} \gets
+    \mathrm{diag}(\bvec{p}_{n-1})\,\bar{F}$\\
+\hspace*{2em}\hspace*{2em}$F \gets F - {\bvec{w}_{n-1}}^\T\,\bvec{z}_{n-1}$\\
+\hspace*{2em}\hspace*{2em}$\bar{\bvec{w}}_{n-1} \gets \bar{\bvec{w}}_{n-1} +
+    \bvec{z}_{n-1}\,\bar{F}^\T$\\
+\hspace*{2em}\hspace*{2em}$\bar{\bvec{y}}_{n-1} \gets \bar{\bvec{y}}_{n-1} +
+    \bvec{w}_{n-1}\,\bar{F}$\\
+\hspace*{2em}\textbf{return} $\bar{U}$, $\bar{P}$, $\bar{\bvec{d}}$,
+    $\bar{W}$, $\bar{Y}$
+\end{minipage}
+\medskip
+
+\noindent A reference C++ implementation of this algorithm can be found online
+TODO ADD ZENODO LINK and \Figure{figure} shows the performance of this
+implementation.
+
+\section{Discussion}
+
+This research note presents the algorithms needed to efficiently compute
+gradients of GP models applied to large datasets using the \emph{celerite}
+method.
+These developments increase the performance of inference methods based on
+\emph{celerite} and improve the convergence properties of non-linear
+optimization routines.
+Furthermore, the derivation of reverse-mode accumulation algorithms for
+\emph{celerite} allow its integration into popular model building and
+automatic differentiation libraries like Stan \citep{Carpenter:2015},
+TensorFlow \citep{Abadi:2016}, and others.
 
 
 \begin{figure}[h!]

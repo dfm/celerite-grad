@@ -140,7 +140,6 @@ void solve_grad (
     Z_ = Z, bZ_ = bZ;
 
   // TODO: can replace bZ_ by bY if bY initially assumed to be zero.
-  //bU.row(0).setZero();
 
   for (int n = 0; n <= N-2; ++n) {
     // Grad of: Z.row(n).noalias() -= W.row(n) * G;
@@ -164,8 +163,6 @@ void solve_grad (
     bU.row(n+1).noalias() += Z_.row(n+1) * bG_.transpose();
     bZ_.row(n+1).noalias() += U.row(n+1) * bG_;
   }
-
-  //bW.row(N-1).setZero();
 
   bZ_.array().colwise() /= d.array();
   bd.array() -= (Z_.array() * bZ_.array()).rowwise().sum();
