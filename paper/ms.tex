@@ -79,20 +79,21 @@ methods: statistical
 
 \section{Introduction}
 
-This research note presents a derivation and implementation of reverse-mode
-gradients of the \emph{celerite} algorithm for scalable inference with
-Gaussian Process (GP) models.
-These gradients can be integrated into existing automatic differentiation
-frameworks to provide a scalable and computationally efficient method for
-evaluating the gradients of the GP likelihood with respect to the kernel
-hyperparameters.
+This research note presents a derivation and implementation of efficient and
+scalable gradient computation using the \emph{celerite} algorithm for Gaussian
+Process (GP) modeling.
+The algorithms are derived in a ``reverse accumulation'' or
+``backpropagation'' framework and they can be easily integrated into existing
+automatic differentiation frameworks to provide a scalable method for
+evaluating the gradients of the GP likelihood with respect to all input
+parameters.
 The algorithm derived in this note uses less memory and is more efficient than
 versions using automatic differentiation and the computational cost scales
 linearly with the number of data points.
 
 GPs \citep{Rasmussen:2006} are a class of models used
 extensively in the astrophysical literature to model stochastic processes.
-The applications are broad-ranging and some example include the time domain
+The applications are broad-ranging and some examples include the time domain
 variability of astronomical sources \citep{Brewer:2009, Kelly:2014,
 Haywood:2014, Rajpaul:2015, Foreman-Mackey:2017}, data-driven models of light
 curves or stellar spectra \citep{Wang:2012, Luger:2016, Czekala:2017}, and the
@@ -106,13 +107,13 @@ marginalized likelihood function (here we follow the notation of
         {K_\bvec{\alpha}}^{-1}\,\left[\bvec{y}-\bvec{\mu}_\bvec{\theta}\right]
     -\frac{1}{2}\,\log\det K_\bvec{\alpha} + \mathrm{constant}
 \end{eqnarray}
-is of central importance and this can often be the computational bottleneck.
-The details of this model are omitted here (more details can be found in
-\citealt{Rasmussen:2006} and \citealt{Foreman-Mackey:2017}), but the key point
-is that, for a dataset with $N$ data points, every evaluation of a GP model
-requires computation of the inverse\footnote{Or, more specifically, a linear
-operator that can left multiply a vector or a matrix by the inverse of this
-matrix.} and log-determinant of the $N \times N$ covariance matrix.
+is generally the computational bottleneck.
+The details of these models are omitted here (see \citealt{Rasmussen:2006} and
+\citealt{Foreman-Mackey:2017} for details), but the key point is that, for a
+dataset with $N$ data points, every evaluation of a GP model requires
+computation of the inverse\footnote{Or, more specifically, a linear operator
+that can left multiply a vector or a matrix by the inverse of this matrix.}
+and log-determinant of the $N \times N$ covariance matrix $K_\bvec{\alpha}$.
 The computational cost of these operations scales as $\mathcal{O}(N^3)$ in the
 general case, but the \emph{celerite} method was recently introduced in the
 astronomical literature to compute the GP likelihood for a class of
@@ -121,15 +122,15 @@ one-dimensional models with $\mathcal{O}(N)$ scaling
 
 The details of the \emph{celerite} method can be found in
 \citet{Foreman-Mackey:2017} and I will not repeat them here.
-The only difference in notation here is that all the matrices to which I refer
-are the ``pre-conditioned'' matrices that are indicated with a tilde by
-\citet{Foreman-Mackey:2017}, but the tilde is not included here for
-simplicity.
-I will also use the symbol $P$ to mean the $N-1 \times J$ pre-conditioning
-matrix that was called $\phi$ by \citet{Foreman-Mackey:2017}.
+The only difference in notation is that all the matrices in what follows are
+the ``pre-conditioned'' matrices that are indicated with a tilde by
+\citet{Foreman-Mackey:2017}.
+The tilde is not included here for simplicity and to improve the readability
+of the algorithms.
+I will also use the symbol $P$ for the $(N-1) \times J$ pre-conditioning matrix
+that was called $\phi$ by \citet{Foreman-Mackey:2017}.
 The Cholesky factorization algorithm derived by \citet[][their
-Equation~46]{Foreman-Mackey:2017} is given is listed below in the following
-algorithm:
+Equation~46]{Foreman-Mackey:2017} is as follows:
 
 \medskip
 \begin{minipage}{\linewidth}
@@ -152,6 +153,7 @@ algorithm:
 \times K$ matrix of zeros, the \texttt{diag} function creates a diagonal
 matrix from a vector, and $\bvec{x}_n$ indicates a row vector made from the
 $n$-th row of the matrix $X$.
+The computational cost of this algorithm scales as $\mathcal{O}(N\,J^2)$.
 Using this factorization, the log-determinant of $K$ is
 \begin{eqnarray}
 \log \det K &=& \sum_{n=1}^N \log d_{n} \quad.
@@ -180,10 +182,18 @@ to apply the inverse of $K$ as follows (Equations~47 and~48 in
 \end{minipage}
 \medskip
 
+\noindent The empirical scaling of these algorithms is shown in
+\Figure{figure}.
+
 \section{Gradients of GP models using celerite}
 
-The standard method of computing gradients of \Eq{loglike} with respect to the
-parameters $\bvec{\theta}$ and $\bvec{\alpha}$ is the equation
+It is standard practice to make inferences using \Eq{loglike} by optimizing or
+choosing a prior and sampling with respect to $\bvec{\theta}$ and
+$\bvec{\alpha}$.
+Many numerical inference methods (like non-linear optimization or Hamiltonian
+Monte Carlo) can benefit from efficient calculation of the gradient of
+\Eq{loglike} with respect to the parameters.
+The standard method of computing these gradients uses the identity
 \citep{Rasmussen:2006}
 \begin{eqnarray}\eqlabel{naive-grad}
 \frac{\dd \log \mathcal{L}}{\dd \alpha_k} &=&
@@ -213,17 +223,17 @@ the general case \citep{Murray:2016}.
 Following this reasoning and using the notation from an excellent review of
 matrix gradients \citep{Giles:2008}, I present the reverse-mode gradients of
 the \emph{celerite} method.
-While not yet popular within astrophysics, ``reverse-mode accumulation'' of
-gradients (also known as ``backpropagation'') has revolutionalized the field
-of machine learning over the past few decades \citep[for
-example][]{LeCun:2015}.
+While not yet popular within astrophysics, ``reverse accumulation'' of
+gradients (also known as ``backpropagation'') has recently revolutionized the
+field of machine learning \citep[see][for example]{LeCun:2015} by enabling the
+non-linear optimization of models with large numbers of parameters.
 The review \citep{Giles:2008} provides a thorough overview of these methods
 and the interested reader is directed to that discussion for details and for
 an explanation of the notation.
 
-Using the notation from \citet{Giles:2008} and performing some tedious
-algebra, the reverse-mode implementation of the \texttt{celerite\_factor}
-function is found to be:
+Using the notation from \citet{Giles:2008}, after some tedious
+algebra, the reverse accumulation function corresponding to
+\texttt{celerite\_factor} is found to be:
 
 \medskip
 \begin{minipage}{\linewidth}
@@ -231,7 +241,9 @@ function is found to be:
     $S$, $\bar{S}$, $\bar{\bvec{a}}$, $\bar{V}$) \\
 \hspace*{2em}\textsf{\# At input $\bar{\bvec{a}} = \bar{\bvec{d}}$ and
     $\bar{V} = \bar{W}$}\\
-    \hspace*{2em}$\bar{\bvec{v}}_N \gets \bar{\bvec{v}}_N / d_N$\\
+\hspace*{2em}$\bar{U} \gets \mathrm{zeros}(N,\,J)$\\
+\hspace*{2em}$\bar{P} \gets \mathrm{zeros}(N-1,\,J)$\\
+\hspace*{2em}$\bar{\bvec{v}}_N \gets \bar{\bvec{v}}_N / d_N$\\
 \hspace*{2em}\textbf{for} $n = N,\ldots,2$:\\
 \hspace*{2em}\hspace*{2em}$\bar{a}_n \gets \bar{a}_n -
     \bvec{w}_n\,{\bar{\bvec{v}}_n}^\T$\\
@@ -257,7 +269,7 @@ function is found to be:
 \end{minipage}
 \medskip
 
-\noindent Similarly, the reverse-mode function corresponding to
+\noindent Similarly, the reverse accumulation function for to
 \texttt{celerite\_solve} is:
 
 \medskip
@@ -265,6 +277,10 @@ function is found to be:
 \textbf{function} \texttt{celerite\_solve\_rev}($U$, $P$, $\bvec{d}$, $W$,
     $Z$, $F$, $G$, $\bar{F}$, $\bar{G}$, $\bar{Y}$) \\
 \hspace*{2em}\textsf{\# At input $\bar{Y} = \bar{Z}$}\\
+\hspace*{2em}$\bar{U} \gets \mathrm{zeros}(N,\,J)$\\
+\hspace*{2em}$\bar{P} \gets \mathrm{zeros}(N-1,\,J)$\\
+\hspace*{2em}$\bar{\bvec{d}} \gets \mathrm{zeros}(N)$\\
+\hspace*{2em}$\bar{W} \gets \mathrm{zeros}(N,\,J)$\\
 \hspace*{2em}\textbf{for} $n = 1,\ldots,N-1$:\\
 \hspace*{2em}\hspace*{2em}$\bar{\bvec{w}}_n \gets
     - \bar{\bvec{y}}_n\,G^\T$\\
@@ -306,7 +322,7 @@ function is found to be:
 \medskip
 
 \noindent A reference C++ implementation of this algorithm can be found online
-TODO ADD ZENODO LINK and \Figure{figure} shows the performance of this
+\citep{Foreman-Mackey:2018} and \Figure{figure} shows the performance of this
 implementation.
 
 \section{Discussion}
@@ -317,26 +333,29 @@ method.
 These developments increase the performance of inference methods based on
 \emph{celerite} and improve the convergence properties of non-linear
 optimization routines.
-Furthermore, the derivation of reverse-mode accumulation algorithms for
+Furthermore, the derivation of reverse accumulation algorithms for
 \emph{celerite} allow its integration into popular model building and
 automatic differentiation libraries like Stan \citep{Carpenter:2015},
 TensorFlow \citep{Abadi:2016}, and others.
 
+\acknowledgments
 It is a pleasure to thank
 Eric Agol,
 Sivaram Ambikasaran, and
 Victor Minden
 for conversations that inspired this work.
 A reference implementation of these algorithms, benchmarks, and tests can be
-found at \url{https://github.com/dfm/celerite-grad}.
+found at \url{https://github.com/dfm/celerite-grad} and
+\citet{Foreman-Mackey:2018}.
 
 \begin{figure}[htbp]
 \begin{center}
 \includegraphics[width=0.9\textwidth]{figure.pdf}
 \caption{%
-    The computational scaling of the algorithms prsented in this note.
-    \emph{(top row)}: The computational cost of computing \eq{loglike} as a
-    function of the number of datapoints ($N$; left) and the model complexity
+    The empirical computational scaling of the algorithms presented in this
+    note.
+    \emph{(top row)}: The cost of computing \eq{loglike} as a
+    function of the number of data points ($N$; left) and the model complexity
     ($J$; right).
     \emph{(bottom row)}: The cost of computing the gradient of \eq{loglike}
     with respect to the vector $\bvec{a}$ and the matrices $U$, $V$, and $P$.
@@ -344,6 +363,7 @@ found at \url{https://github.com/dfm/celerite-grad}.
     indicated in the legend (with $J$ increasing from bottom to top).
     Similarly, in the right panels, the lines correspond to different values
     of $N$ increasing from bottom to top.
+    In both cases, the theoretical scaling is $\mathcal{O}(N,J^2)$.
 \figurelabel{figure}}
 \end{center}
 \end{figure}
