@@ -80,7 +80,7 @@ methods: statistical
 \section{Introduction}
 
 This research note presents a derivation and implementation of efficient and
-scalable gradient computation using the \emph{celerite} algorithm for Gaussian
+scalable gradient computations using the \emph{celerite} algorithm for Gaussian
 Process (GP) modeling.
 The algorithms are derived in a ``reverse accumulation'' or
 ``backpropagation'' framework and they can be easily integrated into existing
@@ -95,9 +95,10 @@ GPs \citep{Rasmussen:2006} are a class of models used
 extensively in the astrophysical literature to model stochastic processes.
 The applications are broad-ranging and some examples include the time domain
 variability of astronomical sources \citep{Brewer:2009, Kelly:2014,
-Haywood:2014, Rajpaul:2015, Foreman-Mackey:2017}, data-driven models of light
-curves or stellar spectra \citep{Wang:2012, Luger:2016, Czekala:2017}, and the
-cosmic microwave background \citep{Bond:1987,Wandelt:2003}.
+Haywood:2014, Rajpaul:2015, Foreman-Mackey:2017, Angus:2018}, data-driven
+models of light curves or stellar spectra \citep{Wang:2012, Luger:2016,
+Czekala:2017}, and the cosmic microwave background
+\citep{Bond:1987,Wandelt:2003}.
 In all of these applications, the calculation and optimization of the GP
 marginalized likelihood function (here we follow the notation of
 \citealt{Foreman-Mackey:2017})
