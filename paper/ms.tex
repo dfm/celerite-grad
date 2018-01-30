@@ -112,9 +112,10 @@ is generally the computational bottleneck.
 The details of these models are omitted here (see \citealt{Rasmussen:2006} and
 \citealt{Foreman-Mackey:2017} for details), but the key point is that, for a
 dataset with $N$ data points, every evaluation of a GP model requires
-computation of the inverse\footnote{Or, more specifically, a linear operator
-that can left multiply a vector or a matrix by the inverse of this matrix.}
-and log-determinant of the $N \times N$ covariance matrix $K_\bvec{\alpha}$.
+computing the log-determinant and multiplying a vector by the inverse of
+%\footnote{Or, more specifically, a linear operator
+%that can left multiply a vector or a matrix by the inverse of this matrix.}
+the $N \times N$ covariance matrix $K_\bvec{\alpha}$.
 The computational cost of these operations scales as $\mathcal{O}(N^3)$ in the
 general case, but the \emph{celerite} method was recently introduced in the
 astronomical literature to compute the GP likelihood for a class of
@@ -160,8 +161,8 @@ Using this factorization, the log-determinant of $K$ is
 \log \det K &=& \sum_{n=1}^N \log d_{n} \quad.
 \end{eqnarray}
 Similarly, \citet{Foreman-Mackey:2017} derived a $\mathcal{O}(N\,J)$ algorithm
-to apply the inverse of $K$ as follows (Equations~47 and~48 in
-\citealt{Foreman-Mackey:2017}):
+to apply the inverse of $K$ (i.e.\ compute $Z = K^{-1}\,Y$) as follows
+(Equations~47 and~48 in \citealt{Foreman-Mackey:2017}):
 
 \medskip
 \begin{minipage}{\linewidth}
@@ -326,6 +327,7 @@ algebra, the reverse accumulation function corresponding to
 \citep{Foreman-Mackey:2018} and \Figure{figure} shows the performance of this
 implementation.
 
+\newpage
 \section{Discussion}
 
 This research note presents the algorithms needed to efficiently compute
@@ -351,7 +353,7 @@ found at \url{https://github.com/dfm/celerite-grad} and
 
 \begin{figure}[htbp]
 \begin{center}
-\includegraphics[width=0.9\textwidth]{figure.pdf}
+\includegraphics[width=0.8\textwidth]{figure.pdf}
 \caption{%
     The empirical computational scaling of the algorithms presented in this
     note.
